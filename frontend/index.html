@@ -1,0 +1,638 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TripNexus | Distributed Travel Booking & Operating System</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        nexus: {
+                            bg: '#070B14',
+                            card: '#0F172A',
+                            cyan: '#06b6d4',
+                            emerald: '#10b981',
+                            purple: '#8b5cf6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-[#070B14] text-slate-100 min-h-screen flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed top-20 right-5 z-50 flex flex-col space-y-3 pointer-events-auto max-w-sm w-full"></div>
+
+    <!-- Live Kafka Disruption Alert Banner (Differentiator #5) -->
+    <div id="disruptionBanner" class="bg-gradient-to-r from-amber-600/90 via-rose-600/90 to-amber-700/90 text-white px-4 py-2.5 shadow-xl border-b border-amber-400/30 flex items-center justify-between text-xs font-semibold z-40 relative backdrop-blur-md">
+        <div class="flex items-center space-x-2.5 overflow-hidden">
+            <span class="flex h-2.5 w-2.5 relative">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+            </span>
+            <span id="disruptionText" class="truncate font-medium">
+                🚨 Kafka Disruption Engine: Vande Bharat Express (22230) reported +2h delay. Affected travelers receive auto-protection.
+            </span>
+        </div>
+        <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
+            <button onclick="claimDisruptionRefund()" class="px-3 py-1 bg-white text-rose-700 hover:bg-slate-100 rounded-lg text-[11px] font-black tracking-wide shadow-md transition transform active:scale-95">
+                Claim 100% Instant Refund
+            </button>
+            <button onclick="document.getElementById('disruptionBanner').style.display='none'" class="text-white/80 hover:text-white px-1">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <header class="sticky top-0 z-30 glass-panel border-b border-white/10 backdrop-blur-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchMainTab('explore')">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-cyan-500/25 border border-cyan-300/30">
+                    <i class="fa-solid fa-compass text-slate-950"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xl font-extrabold tracking-tight text-white font-mono">TRIP<span class="text-gradient-cyan">NEXUS</span></span>
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">v2.6 Cloud</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400 font-medium">Distributed Travel Operating System</p>
+                </div>
+            </div>
+
+            <!-- Main Nav Tabs -->
+            <nav class="hidden lg:flex items-center space-x-1 glass-card p-1.5 rounded-2xl border border-white/5 text-xs font-semibold">
+                <button id="nav-tab-explore" onclick="switchMainTab('explore')" class="px-3.5 py-2 rounded-xl transition border border-cyan-400 text-cyan-400 bg-cyan-500/10 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-earth-americas"></i>
+                    <span>Explore</span>
+                </button>
+                <button id="nav-tab-planner" onclick="switchMainTab('planner')" class="px-3.5 py-2 rounded-xl transition text-slate-400 hover:text-white border border-transparent flex items-center space-x-1.5">
+                    <i class="fa-solid fa-wand-magic-sparkles text-purple-400"></i>
+                    <span>AI Planner</span>
+                </button>
+                <button id="nav-tab-groups" onclick="switchMainTab('groups')" class="px-3.5 py-2 rounded-xl transition text-slate-400 hover:text-white border border-transparent flex items-center space-x-1.5">
+                    <i class="fa-solid fa-user-group text-cyan-400"></i>
+                    <span>Split Pay</span>
+                </button>
+                <button id="nav-tab-safety" onclick="switchMainTab('safety')" class="px-3.5 py-2 rounded-xl transition text-slate-400 hover:text-white border border-transparent flex items-center space-x-1.5">
+                    <i class="fa-solid fa-shield-halved text-rose-400"></i>
+                    <span>SOS Radar</span>
+                </button>
+                <button id="nav-tab-mybookings" onclick="switchMainTab('mybookings')" class="px-3.5 py-2 rounded-xl transition text-slate-400 hover:text-white border border-transparent flex items-center space-x-1.5">
+                    <i class="fa-solid fa-ticket text-emerald-400"></i>
+                    <span>My Passes</span>
+                </button>
+                <button id="tab-agent" onclick="switchMainTab('agent')" class="hidden px-3.5 py-2 rounded-xl transition text-slate-400 hover:text-white border border-transparent flex items-center space-x-1.5">
+                    <i class="fa-solid fa-briefcase text-amber-400"></i>
+                    <span>Agent B2B</span>
+                </button>
+                <button id="tab-admin" onclick="switchMainTab('admin')" class="hidden px-3.5 py-2 rounded-xl transition text-slate-400 hover:text-white border border-transparent flex items-center space-x-1.5">
+                    <i class="fa-solid fa-server text-rose-400"></i>
+                    <span>Admin Ops</span>
+                </button>
+            </nav>
+
+            <!-- Right Controls: Role Switcher & Wallet -->
+            <div class="flex items-center space-x-3">
+                <!-- Role Toggle Pill -->
+                <div class="hidden sm:flex items-center bg-slate-900/90 border border-white/10 rounded-xl p-1 text-[11px]">
+                    <button id="role-btn-customer" onclick="switchRole('customer')" class="role-btn px-2.5 py-1 rounded-lg bg-cyan-500 text-slate-950 font-bold transition">User</button>
+                    <button id="role-btn-agent" onclick="switchRole('agent')" class="role-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition">Agent</button>
+                    <button id="role-btn-admin" onclick="switchRole('admin')" class="role-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition">Admin</button>
+                </div>
+
+                <!-- Nexus Wallet Chip -->
+                <div class="glass-card px-3 py-1.5 rounded-xl border border-cyan-500/30 flex items-center space-x-2.5">
+                    <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                    <div>
+                        <span class="text-[9px] text-slate-400 font-bold uppercase block leading-none">Nexus Wallet</span>
+                        <span id="walletBalanceNav" class="text-xs font-black text-cyan-300 font-mono">₹24,500</span>
+                    </div>
+                    <button onclick="showToast('Wallet auto-refill connected to Mock UPI Bank account!', 'success')" class="text-[10px] text-slate-400 hover:text-cyan-300 pl-1" title="Top-up Wallet">
+                        <i class="fa-solid fa-plus-circle"></i>
+                    </button>
+                </div>
+
+                <!-- User Profile Avatar -->
+                <div class="flex items-center space-x-2 pl-1">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-black flex items-center justify-center text-xs shadow-md border border-purple-400/40">
+                        VA
+                    </div>
+                    <div class="hidden md:block text-left">
+                        <p class="text-xs font-bold leading-tight text-white">Vivek Awasthi</p>
+                        <span id="currentRoleBadge" class="px-2 py-0.2 rounded-full text-[9px] font-bold uppercase tracking-wider bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                            Customer Mode
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+﻿        <!-- SECTION 1: EXPLORE & INVENTORY -->
+        <section id="section-explore" class="space-y-8">
+            <!-- Hero Search Hub -->
+            <div class="glass-panel rounded-3xl p-6 sm:p-10 border border-white/10 relative overflow-hidden glass-glow-cyan">
+                <div class="absolute -right-20 -top-20 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="relative z-10 max-w-3xl mb-8">
+                    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold mb-3">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>Amadeus & Sabre GDS Inspired Distributed Engine</span>
+                    </div>
+                    <h1 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                        Next-Gen Travel Booking with <span class="text-gradient-cyan">AI & Zero-Carbon</span> Precision.
+                    </h1>
+                    <p class="text-sm sm:text-base text-slate-300 mt-2 font-normal">
+                        Unified multi-modal inventory (Flights, Luxury Stays, Vande Bharat Trains & Electric Buses) backed by real-time Kafka event streaming.
+                    </p>
+                </div>
+
+                <!-- Search Category Navigation Tabs -->
+                <div class="flex flex-wrap gap-2 mb-6 border-b border-white/10 pb-4">
+                    <button id="cat-btn-flights" onclick="setSearchCategory('flights')" class="cat-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                        <i class="fa-solid fa-plane-departure"></i>
+                        <span>Flights</span>
+                    </button>
+                    <button id="cat-btn-hotels" onclick="setSearchCategory('hotels')" class="cat-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition text-slate-400 hover:text-white border border-transparent flex items-center space-x-2">
+                        <i class="fa-solid fa-hotel"></i>
+                        <span>Hotels & Resorts</span>
+                    </button>
+                    <button id="cat-btn-trains" onclick="setSearchCategory('trains')" class="cat-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition text-slate-400 hover:text-white border border-transparent flex items-center space-x-2">
+                        <i class="fa-solid fa-train"></i>
+                        <span>Trains (Vande Bharat)</span>
+                    </button>
+                    <button id="cat-btn-buses" onclick="setSearchCategory('buses')" class="cat-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition text-slate-400 hover:text-white border border-transparent flex items-center space-x-2">
+                        <i class="fa-solid fa-bus"></i>
+                        <span>Smart EV Buses</span>
+                    </button>
+                    <button id="cat-btn-packages" onclick="setSearchCategory('packages')" class="cat-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition text-slate-400 hover:text-white border border-transparent flex items-center space-x-2">
+                        <i class="fa-solid fa-umbrella-beach"></i>
+                        <span>Tour Packages</span>
+                    </button>
+                </div>
+
+                <!-- Dynamic Search Form -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="p-3 bg-slate-900/80 rounded-2xl border border-white/10">
+                        <label id="searchOriginLabel" class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Departure City</label>
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-location-dot text-cyan-400 text-sm"></i>
+                            <input id="searchOrigin" type="text" value="New Delhi (DEL)" class="bg-transparent text-sm font-bold text-white focus:outline-none w-full">
+                        </div>
+                    </div>
+                    <div class="p-3 bg-slate-900/80 rounded-2xl border border-white/10">
+                        <label id="searchDestLabel" class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Arrival City</label>
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-location-crosshairs text-emerald-400 text-sm"></i>
+                            <input id="searchDest" type="text" value="Goa (GOI)" class="bg-transparent text-sm font-bold text-white focus:outline-none w-full">
+                        </div>
+                    </div>
+                    <div class="p-3 bg-slate-900/80 rounded-2xl border border-white/10">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Departure Date</label>
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-regular fa-calendar text-purple-400 text-sm"></i>
+                            <input type="date" value="2026-10-24" class="bg-transparent text-sm font-bold text-white focus:outline-none w-full [color-scheme:dark]">
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="p-3 bg-slate-900/80 rounded-2xl border border-white/10 flex-1">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Travelers</label>
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-solid fa-user-group text-amber-400 text-sm"></i>
+                                <select class="bg-transparent text-sm font-bold text-white focus:outline-none w-full">
+                                    <option value="1" class="bg-slate-900">1 Traveler</option>
+                                    <option value="2" selected class="bg-slate-900">2 Travelers</option>
+                                    <option value="4" class="bg-slate-900">4 (Group)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button onclick="executeSearch()" class="h-full px-6 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black rounded-2xl flex items-center justify-center transition shadow-lg shadow-cyan-500/25">
+                            <i class="fa-solid fa-magnifying-glass text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Eco Comparator Component (Differentiator #4) -->
+            <div id="ecoComparatorWidget"></div>
+
+            <!-- Search Results Cards Container -->
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-extrabold text-white">Live Real-Time Inventory</h3>
+                        <p class="text-xs text-slate-400">Verified inventory synchronized with Amadeus API & Indian Railways (IRCTC)</p>
+                    </div>
+                    <span class="text-xs text-cyan-400 font-mono font-bold">⚡ Redis Cache Latency: 4ms</span>
+                </div>
+                <div id="searchResultsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: AI-SMART ITINERARY PLANNER (Differentiator #1) -->
+        <section id="section-planner" class="hidden space-y-6">
+            <div class="glass-panel rounded-3xl p-6 sm:p-10 border border-purple-500/20 relative overflow-hidden">
+                <div class="absolute -right-20 -top-20 w-80 h-80 bg-purple-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="max-w-3xl mb-6">
+                    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-bold mb-3">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>Autonomous Generative Trip Engine</span>
+                    </div>
+                    <h2 class="text-2xl sm:text-4xl font-extrabold text-white">AI-Smart Itinerary Planner</h2>
+                    <p class="text-xs sm:text-sm text-slate-300 mt-1">
+                        Unlike Expedia's manual search, TripNexus generates full customized day-by-day schedules tailored to your exact budget, vibe, and companion count.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                    <div class="p-3 bg-slate-900/80 rounded-2xl border border-white/10">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Destination</label>
+                        <input id="aiDestination" type="text" value="Goa, India" class="bg-transparent text-sm font-bold text-white focus:outline-none w-full">
+                    </div>
+                    <div class="p-3 bg-slate-900/80 rounded-2xl border border-white/10">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Duration (Days)</label>
+                        <input id="aiDays" type="number" min="1" max="14" value="5" class="bg-transparent text-sm font-bold text-white focus:outline-none w-full">
+                    </div>
+                    <div class="p-3 bg-slate-900/80 rounded-2xl border border-white/10">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Budget (₹)</label>
+                        <input id="aiBudget" type="number" step="1000" value="28000" class="bg-transparent text-sm font-bold text-white focus:outline-none w-full font-mono">
+                    </div>
+                    <div class="p-3 bg-slate-900/80 rounded-2xl border border-white/10">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Travelers</label>
+                        <input id="aiTravelers" type="number" min="1" max="10" value="2" class="bg-transparent text-sm font-bold text-white focus:outline-none w-full">
+                    </div>
+                    <div class="p-3 bg-slate-900/80 rounded-2xl border border-white/10">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Travel Vibe</label>
+                        <select id="aiVibe" class="bg-transparent text-sm font-bold text-white focus:outline-none w-full">
+                            <option value="balanced" class="bg-slate-900">🏖️ Beach & Culture</option>
+                            <option value="adventure" class="bg-slate-900">⚡ High Adrenaline</option>
+                            <option value="luxury" class="bg-slate-900">✨ Ultra Luxury</option>
+                            <option value="budget" class="bg-slate-900">🎒 Backpacking Green</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="generateAIBtn" onclick="generateAIItinerary()" class="w-full py-3.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-extrabold text-sm rounded-2xl transition shadow-xl shadow-purple-600/20 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Generate Complete Day-by-Day Itinerary</span>
+                </button>
+            </div>
+
+            <div id="aiItineraryOutput" class="space-y-4"></div>
+        </section>
+﻿        <!-- SECTION 3: GROUP SPLIT BILLING (Differentiator #2) -->
+        <section id="section-groups" class="hidden space-y-6">
+            <div class="glass-panel rounded-3xl p-6 sm:p-10 border border-cyan-500/20 relative overflow-hidden">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold mb-2">
+                            <i class="fa-solid fa-user-group"></i>
+                            <span>Real-Time Collaborative Ledger</span>
+                        </div>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Goa Annual Reunion 2026</h2>
+                        <p class="text-xs text-slate-400">Total Group Bill: ₹28,000 • 4 Travelers • Split equally at ₹7,000/person</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="copyGroupInviteCode()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 rounded-xl text-xs font-bold transition flex items-center space-x-2">
+                            <i class="fa-solid fa-link"></i>
+                            <span>Invite Link (TRIP-702)</span>
+                        </button>
+                        <button onclick="simulateAddMember()" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-xl text-xs font-black transition flex items-center space-x-2 shadow-lg shadow-cyan-500/20">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Add Traveler</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Payment Collection Progress Bar -->
+                <div class="mb-6 p-4 rounded-2xl bg-slate-900/60 border border-white/5">
+                    <div class="flex items-center justify-between text-xs font-bold mb-2">
+                        <span class="text-slate-300">Group Payment Completion</span>
+                        <span id="groupProgressPercent" class="text-cyan-400 font-mono">75% Collected (₹21,000 / ₹28,000)</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden p-0.5 border border-white/10">
+                        <div id="groupProgressBar" class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 75%"></div>
+                    </div>
+                </div>
+
+                <!-- Ledger Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="border-b border-white/10 text-slate-400 font-bold uppercase text-[10px]">
+                                <th class="pb-3 px-2">Member</th>
+                                <th class="pb-3 px-2">Share</th>
+                                <th class="pb-3 px-2">Status</th>
+                                <th class="pb-3 px-2 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="groupMembersList" class="divide-y divide-white/5"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: EMERGENCY SOS RADAR (Differentiator #3) -->
+        <section id="section-safety" class="hidden space-y-6">
+            <div class="glass-panel rounded-3xl p-6 sm:p-10 border border-rose-500/30 relative overflow-hidden">
+                <div class="absolute -right-20 -top-20 w-80 h-80 bg-rose-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                    <div class="max-w-2xl">
+                        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-bold mb-3">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span>24/7 Traveler Protection Shield</span>
+                        </div>
+                        <h2 class="text-2xl sm:text-4xl font-extrabold text-white">Emergency SOS Assistant & Radar</h2>
+                        <p class="text-xs sm:text-sm text-slate-300 mt-2">
+                            Instant geofenced safety scanner that locates the nearest 24/7 verified trauma hospitals, tourist police stations, and consular offices during emergencies.
+                        </p>
+                    </div>
+
+                    <!-- Radar Beacon Animation Widget -->
+                    <div class="flex items-center space-x-4 bg-slate-900/80 p-4 rounded-2xl border border-rose-500/20">
+                        <div class="relative flex items-center justify-center w-12 h-12">
+                            <div class="w-8 h-8 rounded-full bg-rose-600/40 animate-radar absolute"></div>
+                            <div class="w-4 h-4 rounded-full bg-rose-500 relative z-10 shadow-lg shadow-rose-500/50"></div>
+                        </div>
+                        <div class="text-left">
+                            <span class="text-[10px] text-slate-400 uppercase font-bold block">GPS Sat-Lock Active</span>
+                            <span class="text-xs font-bold font-mono text-emerald-400">15.2993° N, 74.1240° E (Goa)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-3 mb-8">
+                    <button onclick="triggerSOSRadar()" class="px-5 py-3 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-extrabold text-xs transition shadow-lg shadow-rose-600/30 flex items-center space-x-2">
+                        <i class="fa-solid fa-satellite-dish"></i>
+                        <span>Scan 5km Radius Radar</span>
+                    </button>
+                    <button onclick="shareLiveLocation()" class="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 text-xs font-bold transition flex items-center space-x-2">
+                        <i class="fa-solid fa-share-nodes text-cyan-400"></i>
+                        <span>Copy Encrypted SOS Live Link</span>
+                    </button>
+                    <a href="tel:112" class="px-5 py-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 hover:bg-rose-900/40 text-xs font-bold transition flex items-center space-x-2">
+                        <i class="fa-solid fa-phone-volume"></i>
+                        <span>Call 112 National Helpline</span>
+                    </a>
+                </div>
+
+                <!-- Verified Emergency Contacts Grid -->
+                <div id="sosResults" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-card rounded-2xl p-5 border border-white/10">
+                        <div class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-base mb-3">
+                            <i class="fa-solid fa-hospital"></i>
+                        </div>
+                        <h4 class="text-base font-bold text-white">Apollo Victor Hospital</h4>
+                        <p class="text-xs text-slate-400 mt-1">Margao, South Goa • 3.2 km away</p>
+                        <span class="inline-block mt-2 px-2 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] rounded-full font-bold">24/7 Trauma ICU Verified</span>
+                        <div class="mt-4 pt-3 border-t border-white/10 flex justify-between items-center text-xs">
+                            <span class="font-mono text-cyan-400 font-bold">+91 832 672 8888</span>
+                            <a href="tel:918326728888" class="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-lg font-bold hover:bg-cyan-500/30">Call</a>
+                        </div>
+                    </div>
+
+                    <div class="glass-card rounded-2xl p-5 border border-white/10">
+                        <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-base mb-3">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <h4 class="text-base font-bold text-white">Goa Tourist Police Post</h4>
+                        <p class="text-xs text-slate-400 mt-1">Colva Beach Circle • 1.8 km away</p>
+                        <span class="inline-block mt-2 px-2 py-0.5 bg-blue-500/20 text-blue-300 text-[10px] rounded-full font-bold">Rapid Response Unit</span>
+                        <div class="mt-4 pt-3 border-t border-white/10 flex justify-between items-center text-xs">
+                            <span class="font-mono text-cyan-400 font-bold">+91 832 242 8488</span>
+                            <a href="tel:918322428488" class="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-lg font-bold hover:bg-cyan-500/30">Call</a>
+                        </div>
+                    </div>
+
+                    <div class="glass-card rounded-2xl p-5 border border-white/10">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-base mb-3">
+                            <i class="fa-solid fa-passport"></i>
+                        </div>
+                        <h4 class="text-base font-bold text-white">Consular Assistance Desk</h4>
+                        <p class="text-xs text-slate-400 mt-1">Panaji Regional Center • 14 km away</p>
+                        <span class="inline-block mt-2 px-2 py-0.5 bg-amber-500/20 text-amber-300 text-[10px] rounded-full font-bold">Passport & Evacuation Help</span>
+                        <div class="mt-4 pt-3 border-t border-white/10 flex justify-between items-center text-xs">
+                            <span class="font-mono text-cyan-400 font-bold">+91 832 222 5555</span>
+                            <a href="tel:918322225555" class="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-lg font-bold hover:bg-cyan-500/30">Call</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: AGENT B2B PORTAL -->
+        <section id="section-agent" class="hidden space-y-6">
+            <div class="glass-panel rounded-3xl p-6 sm:p-10 border border-amber-500/30 relative overflow-hidden">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold mb-2">
+                            <i class="fa-solid fa-briefcase"></i>
+                            <span>B2B Travel Agent & Broker Console</span>
+                        </div>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Custom Tour & Markup Publisher</h2>
+                        <p class="text-xs text-slate-400">Bundle inventory wholesale, append margin, and publish directly to consumer search.</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] text-slate-400 uppercase font-bold block">Agent Total Earnings</span>
+                        <span class="text-2xl font-black font-mono text-amber-400">₹68,400</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div class="p-3 bg-slate-900/80 rounded-2xl border border-white/10">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Package Name</label>
+                        <input id="pkgName" type="text" placeholder="e.g. VIP Goa Monsoon Retreat" class="bg-transparent text-sm font-bold text-white focus:outline-none w-full">
+                    </div>
+                    <div class="p-3 bg-slate-900/80 rounded-2xl border border-white/10">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Base Cost (₹)</label>
+                        <input id="pkgBaseCost" type="number" placeholder="14000" class="bg-transparent text-sm font-bold text-white focus:outline-none w-full font-mono">
+                    </div>
+                    <div class="p-3 bg-slate-900/80 rounded-2xl border border-white/10">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Agent Markup / Profit (₹)</label>
+                        <input id="pkgMarkup" type="number" placeholder="2500" class="bg-transparent text-sm font-bold text-white focus:outline-none w-full font-mono">
+                    </div>
+                </div>
+
+                <button onclick="publishAgentPackage()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs rounded-2xl transition shadow-xl shadow-amber-500/20 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span>Publish Custom Package to Global Catalog</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- SECTION 6: SUPER ADMIN & KAFKA OPS -->
+        <section id="section-admin" class="hidden space-y-6">
+            <div class="glass-panel rounded-3xl p-6 sm:p-10 border border-rose-500/30 relative overflow-hidden">
+                <div class="flex items-center space-x-3 mb-6">
+                    <div class="w-10 h-10 rounded-2xl bg-rose-600/20 text-rose-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-server"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-extrabold text-white">Super Admin & Distributed Infrastructure</h2>
+                        <p class="text-xs text-slate-400">Simulate Kafka event streams, circuit breakers, and monitor microservices cluster</p>
+                    </div>
+                </div>
+
+                <!-- Kafka Broadcast Simulation -->
+                <div class="p-5 rounded-2xl bg-slate-900/80 border border-white/10 mb-6">
+                    <h4 class="text-sm font-bold text-white mb-3"><i class="fa-solid fa-tower-broadcast text-rose-400 mr-2"></i>Emit Live Kafka Disruption Event</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Carrier / Route</label>
+                            <input id="broadcastCarrier" type="text" value="Vande Bharat Express (22230)" class="w-full bg-slate-800 p-2.5 rounded-xl text-xs font-bold text-white border border-white/10">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Disruption Event Type</label>
+                            <select id="broadcastType" class="w-full bg-slate-800 p-2.5 rounded-xl text-xs font-bold text-white border border-white/10">
+                                <option value="Flight/Train Delay (+2h)">Heavy Monsoon Delay (+2h)</option>
+                                <option value="Severe Weather Cancellation">Route Cancellation</option>
+                                <option value="Departure Gate Change (Gate 14B)">Gate Reassignment (Gate 14B)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button onclick="broadcastDisruptionEvent()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl transition flex items-center space-x-2">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Publish to Kafka Topic: travel.disruptions</span>
+                    </button>
+                </div>
+
+                <!-- Microservice Topology Monitor -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div class="p-3 bg-slate-900/60 rounded-xl border border-white/5">
+                        <span class="text-[10px] text-slate-400 block uppercase">Eureka Registry</span>
+                        <span class="text-xs font-bold text-emerald-400">● 9 Services UP</span>
+                    </div>
+                    <div class="p-3 bg-slate-900/60 rounded-xl border border-white/5">
+                        <span class="text-[10px] text-slate-400 block uppercase">Spring Cloud Gateway</span>
+                        <span class="text-xs font-bold text-cyan-400">● Port 8080 (12ms)</span>
+                    </div>
+                    <div class="p-3 bg-slate-900/60 rounded-xl border border-white/5">
+                        <span class="text-[10px] text-slate-400 block uppercase">Kafka Cluster</span>
+                        <span class="text-xs font-bold text-amber-400">● 3 Brokers Active</span>
+                    </div>
+                    <div class="p-3 bg-slate-900/60 rounded-xl border border-white/5">
+                        <span class="text-[10px] text-slate-400 block uppercase">Redis Cache</span>
+                        <span class="text-xs font-bold text-emerald-400">● Hit Ratio 94.8%</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 7: MY BOOKINGS & PASSES -->
+        <section id="section-mybookings" class="hidden space-y-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-extrabold text-white">My Trips & Digital Boarding Passes</h2>
+                    <p class="text-xs text-slate-400">Instant access to confirmed bookings, IATA digital passes, and automated cancellation protection</p>
+                </div>
+                <button onclick="switchMainTab('explore')" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-black text-xs hover:bg-cyan-400 transition">
+                    + Book New Trip
+                </button>
+            </div>
+            <div id="myBookingsList" class="space-y-4"></div>
+        </section>
+
+    </main>
+﻿    <!-- FOOTER -->
+    <footer class="glass-panel border-t border-white/10 py-8 mt-12 text-xs text-slate-400">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+                <div class="flex items-center space-x-2">
+                    <span class="font-extrabold text-white font-mono">TRIPNEXUS SYSTEM</span>
+                    <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-white/5 text-slate-300">College Minor Project 2026</span>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">
+                    Architected by <strong>Vivek Awasthi</strong> | Tech Stack: Spring Boot 3, Apache Kafka, Redis, PostgreSQL, MongoDB, Tailwind CSS
+                </p>
+            </div>
+            <div class="flex items-center space-x-4 text-[11px]">
+                <span class="flex items-center text-emerald-400"><i class="fa-solid fa-circle text-[8px] mr-1.5"></i>All 9 Microservices Healthy</span>
+                <span>Agile Scrum Sprint 4 Completed</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- BOOKING CHECKOUT MODAL -->
+    <div id="bookingModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+        <div class="glass-panel border border-cyan-500/30 rounded-3xl p-6 sm:p-8 max-w-lg w-full relative">
+            <button onclick="closeBookingModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 class="text-xl font-extrabold text-white mb-1">Confirm Travel Reservation</h3>
+            <p class="text-xs text-slate-400 mb-4">Select preferred payment rail and complete instant booking</p>
+
+            <div id="bookingModalSummary"></div>
+
+            <div class="mb-5">
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Select Payment Method</label>
+                <div class="grid grid-cols-2 gap-3 text-xs font-bold">
+                    <div id="pay-opt-wallet" onclick="selectPaymentMethod('wallet')" class="pay-option p-3 rounded-xl border border-cyan-400 bg-cyan-500/10 cursor-pointer flex items-center space-x-2.5">
+                        <i class="fa-solid fa-wallet text-cyan-400 text-base"></i>
+                        <div>
+                            <span class="block text-white">Nexus Wallet</span>
+                            <span id="walletBalanceModal" class="text-[10px] text-cyan-300 font-mono">₹24,500</span>
+                        </div>
+                    </div>
+                    <div id="pay-opt-upi" onclick="selectPaymentMethod('upi')" class="pay-option p-3 rounded-xl border border-white/10 hover:border-white/20 cursor-pointer flex items-center space-x-2.5">
+                        <i class="fa-solid fa-qrcode text-emerald-400 text-base"></i>
+                        <div>
+                            <span class="block text-white">Instant UPI</span>
+                            <span class="text-[10px] text-slate-400">GPay / PhonePe</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="confirmBooking()" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black rounded-xl text-sm transition shadow-xl shadow-cyan-500/20">
+                Authorize & Confirm Reservation
+            </button>
+        </div>
+    </div>
+
+    <!-- DIGITAL BOARDING PASS / TICKET MODAL -->
+    <div id="ticketModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+        <div class="max-w-xl w-full relative">
+            <button onclick="closeTicketModal()" class="absolute -top-10 right-0 text-white/80 hover:text-white text-base bg-white/10 px-3 py-1 rounded-xl">
+                <i class="fa-solid fa-xmark mr-1"></i> Close Pass
+            </button>
+            <div id="ticketModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Application JavaScript Modules -->
+    <script src="js/data.js"></script>
+    <script src="js/planner.js"></script>
+    <script src="js/splitpay.js"></script>
+    <script src="js/safety.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

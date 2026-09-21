@@ -1,0 +1,115 @@
+
+services:
+  # Service Discovery Registry (Netflix Eureka)
+  service-registry:
+    build: ./services/service-registry
+    container_name: tripnexus-registry
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - nexus-network
+
+  # Centralized API Gateway (Spring Cloud Gateway)
+  api-gateway:
+    build: ./services/api-gateway
+    container_name: tripnexus-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - service-registry
+      - redis
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - SPRING_REDIS_HOST=redis
+    networks:
+      - nexus-network
+
+  # Distributed Messaging Bus (Zookeeper + Apache Kafka)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: tripnexus-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - nexus-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: tripnexus-kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - nexus-network
+
+  # Relational Database for ACID Transactions & Bookings
+  postgres:
+    image: postgres:16-alpine
+    container_name: tripnexus-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: tripnexus_db
+      POSTGRES_USER: nexus_admin
+      POSTGRES_PASSWORD: nexus_secure_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nexus-network
+
+  # NoSQL Document Store for Dynamic AI Itineraries
+  mongodb:
+    image: mongo:7.0
+    container_name: tripnexus-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: tripnexus_planner
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - nexus-network
+
+  # In-Memory Cache & Rate Limiter
+  redis:
+    image: redis:7-alpine
+    container_name: tripnexus-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - nexus-network
+
+  # Distributed APM Tracing (Zipkin)
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: tripnexus-zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - nexus-network
+
+networks:
+  nexus-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mongo_data:
+  redis_data:
